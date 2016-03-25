@@ -300,6 +300,14 @@ func (b *Blueflood) FetchSingleTimeseries(request api.FetchTimeseriesRequest) (a
 
 }
 
+// CheckHealthy checks if the blueflood server is available by querying /v2.0
+//
+// TODO: Timeouts?
+func (b *Blueflood) CheckHealthy() error {
+	_, err := b.client.Get(fmt.Sprintf("%s/v2.0", b.config.BaseURL))
+	return err
+}
+
 // Helper functions
 // ----------------
 

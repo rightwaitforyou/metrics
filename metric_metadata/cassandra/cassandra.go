@@ -92,6 +92,11 @@ func (a *CassandraMetricMetadataAPI) GetAllMetrics(context api.MetricMetadataAPI
 	return a.db.GetAllMetrics()
 }
 
+// CheckHealthy checks if the underlying connection to Cassandra is healthy
+func (a *CassandraMetricMetadataAPI) CheckHealthy() error {
+	return a.db.CheckHealthy()
+}
+
 // ensure interface
 var _ api.MetricMetadataAPI = (*CassandraMetricMetadataAPI)(nil)
 
@@ -222,4 +227,9 @@ func (db *cassandraDatabase) RemoveFromTagIndex(tagKey string, tagValue string, 
 		tagKey,
 		tagValue,
 	).Exec()
+}
+
+// CheckHealthy checks if the connection to Cassandra is healthy
+func (db *cassandraDatabase) CheckHealthy() error {
+	return db.session.Query("SELECT now() FROM system.local").Exec()
 }

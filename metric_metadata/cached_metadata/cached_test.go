@@ -48,6 +48,11 @@ func (c *testAPI) GetMetricsForTag(tagKey, tagValue string, context api.MetricMe
 	panic("unimplemented")
 }
 
+// CheckHealthy checks if the underlying MetricMetadataAPI is healthy
+func (c *testAPI) CheckHealthy() error {
+	panic("unimplemented")
+}
+
 func (c *testAPI) GetAllTags(metricKey api.MetricKey, context api.MetricMetadataAPIContext) ([]api.TagSet, error) {
 	defer func() { c.finished <- string(metricKey) }()
 	// Wait for permission to proceed before returning.

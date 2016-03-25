@@ -25,6 +25,8 @@ type TimeseriesStorageAPI interface {
 	ChooseResolution(requested Timerange, smallestResolution time.Duration) time.Duration
 	FetchSingleTimeseries(request FetchTimeseriesRequest) (Timeseries, error)
 	FetchMultipleTimeseries(request FetchMultipleTimeseriesRequest) (SeriesList, error)
+	// CheckHealthy checks if this TimeseriesStorageAPI is healthy, returning a possible error
+	CheckHealthy() error
 }
 
 type FetchTimeseriesRequest struct {
