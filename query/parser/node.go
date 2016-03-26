@@ -27,6 +27,12 @@ type any interface{} // fixes a bug in gopeg
 // * lists
 // * evaluation context nodes
 
+type token struct {
+	location string
+	index    int
+	text     string
+}
+
 type stringLiteral struct {
 	literal string
 }
@@ -53,12 +59,12 @@ type groupByList struct {
 
 // evaluationContextKey represents a key (from, to, sampleby) for the evaluation context.
 type evaluationContextKey struct {
-	key string
+	key token
 }
 
 // evaluationContextValue represents a value (date, samplingmode, etc.) for the evaluation context.
 type evaluationContextValue struct {
-	value string
+	value token
 }
 
 // evaluationContextMap represents a collection of key-value pairs that form the evaluation context.

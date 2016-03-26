@@ -180,8 +180,31 @@ func Parse(query string) (commandResult command.Command, finalErr error) {
 // these functions are called to mark that an error has occurred
 // while parsing or constructing command.
 
-func (p *Parser) flagSyntaxError(err SyntaxError) {
-	p.errors = append(p.errors, err)
+func (p *Parser) parsingLocation(until int) string {
+	line := 0
+	col := 0
+	for i := 0; i < until; i++ {
+		switch p.buffer[i] {
+		case '\r': // Carriage return
+			col = 0
+		case '\n': // Newline
+			col = 0
+			line++
+		case '\t': // Indent
+			col /= 4
+			col *= 4
+			col += 4
+		default: // Note: this is obviously not unicode-safe
+			col++
+		}
+	}
+	return fmt.Sprintf("line %d, column %d", line+1, col+1)
+}
+
+func (p *Parser) flagSyntaxError(location int, message string) {
+	p.errors = append(p.errors, SyntaxError{
+		message: fmt.Sprintf("%s :: %s", p.parsingLocation(location), message),
+	})
 }
 
 // Generic Stack Operation
@@ -322,11 +345,15 @@ func (p *Parser) addOperatorFunction() {
 	})
 }
 
-func (p *Parser) addPropertyKey(key string) {
+func (p *Parser) token(location int, text string) token {
+	return token{p.parsingLocation(location), text}
+}
+
+func (p *Parser) addPropertyKey(key token) {
 	p.pushNode(&evaluationContextKey{key})
 }
 
-func (p *Parser) addPropertyValue(value string) {
+func (p *Parser) addPropertyValue(value token) {
 	p.pushNode(&evaluationContextValue{value})
 }
 
@@ -352,19 +379,19 @@ func (p *Parser) insertPropertyKeyValue() {
 	// The key must be one of "sample"(by), "from", "to", "resolution"
 
 	// First check that the key has been assigned only once:
-	if contextNode.assigned[key] {
-		p.flagSyntaxError(SyntaxError{
-			token:   key,
-			message: fmt.Sprintf("Key %s has already been assigned", key),
-		})
+	if contextNode.assigned[key.text] {
+		p.flagSyntaxError(
+			key.index,
+			fmt.Sprintf("Key %s has already been assigned", key.text),
+		)
 	}
-	contextNode.assigned[key] = true
+	contextNode.assigned[key.text] = true
 
-	switch key {
+	switch key.text {
 	case "sample":
 		// If the key is "sample", it means we're in a "sample by" declaration.
 		// Only three possible sample methods are defined: min, max, or mean.
-		switch value {
+		switch value.text {
 		case "max":
 			contextNode.SampleMethod = timeseries.SampleMax
 		case "min":
@@ -372,43 +399,43 @@ func (p *Parser) insertPropertyKeyValue() {
 		case "mean":
 			contextNode.SampleMethod = timeseries.SampleMean
 		default:
-			p.flagSyntaxError(SyntaxError{
-				token:   value,
-				message: fmt.Sprintf("Expected sampling method 'max', 'min', or 'mean' but got %s", value),
-			})
+			p.flagSyntaxError(
+				value.index,
+				fmt.Sprintf("Expected sampling method 'max', 'min', or 'mean' but got %s", value.text),
+			)
 		}
 	case "from", "to":
 		var unix int64
 		var err error
 		now := time.Now()
-		if unix, err = parseDate(value, now); err != nil {
-			p.flagSyntaxError(SyntaxError{
-				token:   value,
-				message: err.Error(),
-			})
+		if unix, err = parseDate(value.text, now); err != nil {
+			p.flagSyntaxError(
+				value.index,
+				fmt.Sprintf("Error parsing date: %s", err.Error()),
+			)
 		}
-		if key == "from" {
+		if key.text == "from" {
 			contextNode.Start = unix
 		} else {
 			contextNode.End = unix
 		}
 	case "resolution":
 		// The value must be determined to be an int if the key is "resolution".
-		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+		if intValue, err := strconv.ParseInt(value.text, 10, 64); err == nil {
 			contextNode.Resolution = intValue
-		} else if duration, err := function.StringToDuration(value); err == nil {
+		} else if duration, err := function.StringToDuration(value.text); err == nil {
 			contextNode.Resolution = int64(duration / time.Millisecond)
 		} else {
-			p.flagSyntaxError(SyntaxError{
-				token:   value,
-				message: fmt.Sprintf("Expected number but parse failed; %s", err.Error()),
-			})
+			p.flagSyntaxError(
+				value.index,
+				fmt.Sprintf("Expected number but parse failed; %s", err.Error()),
+			)
 		}
 	default:
-		p.flagSyntaxError(SyntaxError{
-			token:   key,
-			message: fmt.Sprintf("Unknown property key %s", key),
-		})
+		p.flagSyntaxError(
+			key.index,
+			fmt.Sprintf("Unknown property key %s", key.text),
+		)
 	}
 	p.pushNode(contextNode)
 }
@@ -420,7 +447,8 @@ func (p *Parser) checkPropertyClause() {
 	mandatoryFields := []string{"from", "to"} // Sample, resolution is optional (default to mean, 30s)
 	for _, field := range mandatoryFields {
 		if !contextNode.assigned[field] {
-			p.flagSyntaxError(SyntaxError{
+			p.flagSyntaxError(
+				field.text,
 				token:   field,
 				message: fmt.Sprintf("Field %s is never assigned in property clause", field),
 			})
