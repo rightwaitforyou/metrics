@@ -17,7 +17,6 @@ package expression
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/square/metrics/api"
 	"github.com/square/metrics/function"
@@ -26,57 +25,6 @@ import (
 	"github.com/square/metrics/timeseries"
 	"github.com/square/metrics/util"
 )
-
-// Implementations
-// ===============
-
-type Duration struct {
-	Literal  string
-	Duration time.Duration
-}
-
-func (expr Duration) Evaluate(context function.EvaluationContext) (function.Value, error) {
-	return function.NewDurationValue(expr.Literal, expr.Duration), nil
-}
-
-func (expr Duration) Name() string {
-	return expr.Literal
-}
-func (expr Duration) QueryString() string {
-	return expr.Literal
-}
-
-type Scalar struct {
-	Value float64
-}
-
-func (expr Scalar) Evaluate(context function.EvaluationContext) (function.Value, error) {
-	return function.ScalarValue(expr.Value), nil
-}
-
-func (expr Scalar) Name() string {
-	return fmt.Sprintf("%+v", expr.Value)
-}
-
-func (expr Scalar) QueryString() string {
-	return fmt.Sprintf("%+v", expr.Value)
-}
-
-type String struct {
-	Value string
-}
-
-func (expr String) Evaluate(context function.EvaluationContext) (function.Value, error) {
-	return function.StringValue(expr.Value), nil
-}
-
-func (expr String) Name() string {
-	return fmt.Sprintf("%q", expr.Value)
-}
-
-func (expr String) QueryString() string {
-	return fmt.Sprintf("%q", expr.Value)
-}
 
 type MetricFetchExpression struct {
 	MetricName string

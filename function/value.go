@@ -29,6 +29,7 @@ type Value interface {
 	ToSeriesList(api.Timerange, string) (api.SeriesList, error)
 	ToString(string) (string, error)          // takes a description of the object's expression
 	ToScalar(string) (float64, error)         // takes a description of the object's expression
+	ToScalarSet(string) (ScalarSet, error)    // takes a description of the object's expression
 	ToDuration(string) (time.Duration, error) // takes a description of the object's expression
 }
 
@@ -67,6 +68,11 @@ func (value StringValue) ToScalar(description string) (float64, error) {
 	return 0, ConversionError{"string", "scalar", description}
 }
 
+// ToScalarSet is a conversion function.
+func (value StringValue) ToScalarSet(description string) (ScalarSet, error) {
+	return nil, ConversionError{"string", "scalar set", description}
+}
+
 // ToDuration is a conversion function.
 func (value StringValue) ToDuration(description string) (time.Duration, error) {
 	return 0, ConversionError{"string", "duration", description}
@@ -99,6 +105,12 @@ func (value ScalarValue) ToScalar(description string) (float64, error) {
 	return float64(value), nil
 }
 
+// ToScalarSet is a conversion function.
+// It sends the scalar to a set with no tags.
+func (value ScalarValue) ToScalarSet(description string) (ScalarSet, error) {
+	return ScalarSet{{Value: float64(value)}}, nil
+}
+
 // ToDuration is a conversion function.
 // Scalars cannot be converted to durations.
 func (value ScalarValue) ToDuration(description string) (time.Duration, error) {
@@ -129,6 +141,11 @@ func (value DurationValue) ToString(description string) (string, error) {
 // ToScalar is a conversion function.
 func (value DurationValue) ToScalar(description string) (float64, error) {
 	return 0, ConversionError{"duration", "scalar", description}
+}
+
+// ToScalarSet is a conversion function.
+func (value DurationValue) ToScalarSet(description string) (ScalarSet, error) {
+	return nil, ConversionError{"duration", "scalar set", description}
 }
 
 // ToDuration is a conversion function.
